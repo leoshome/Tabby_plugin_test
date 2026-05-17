@@ -1,10 +1,8 @@
 import { NgModule, Injectable } from '@angular/core'
-import TabbyCoreModule, { ToolbarButtonProvider, ToolbarButton } from 'tabby-core'
-import { TerminalDecorator, BaseTerminalTabComponent } from 'tabby-terminal'
+import TabbyCoreModule, { ToolbarButtonProvider, ToolbarButton, LogService } from 'tabby-core'
+import { TerminalDecorator } from 'tabby-terminal'
+import { ElectronService } from 'tabby-electron'
 
-let monitoring = false
-let outputSub: any = null
-let lastLineContent = ''
 let trackedTab: any = null
 
 @Injectable()
@@ -15,43 +13,79 @@ class TrackerDecorator extends TerminalDecorator {
 }
 
 @Injectable()
-class MonitorButtonProvider extends ToolbarButtonProvider {
+class ScriptButtonProvider extends ToolbarButtonProvider {
+    constructor(
+        private electron: ElectronService,
+        private log: LogService,
+    ) {
+        super()
+    }
+
     provide(): ToolbarButton[] {
         return [{
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>',
-            title: monitoring ? 'Stop' : 'Start',
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8.5 13.5l1.5 1.5-1.5 1.5L7 15l-1.5 1.5L4 15l1.5-1.5L4 12l1.5-1.5L7 12l1.5-1.5L10 12l-1.5 1.5zm7 6l-1.5-1.5 1.5-1.5L17 15l1.5 1.5L20 15l1.5 1.5L20 18l-1.5 1.5L17 18l-1.5 1.5z"/></svg>',
+            title: 'Run Script',
             weight: 10,
             click: () => {
-                if (monitoring) {
-                    this.stopMonitor()
-                } else {
-                    this.startMonitor()
-                }
+                this.openAndRunScript()
             },
         }]
     }
 
-    private startMonitor(): void {
-        if (!trackedTab) { alert('Open a terminal first'); return }
-        if (!trackedTab.session) { alert('No session'); return }
-        monitoring = true
-        lastLineContent = ''
-        outputSub = trackedTab.session.output$.subscribe((data: any) => {
-            const text = data.toString()
-            const lines = text.split('\n')
-            if (lines.length > 0) lastLineContent = lines[lines.length - 1].trim()
-            if (lastLineContent.toLowerCase().includes('c:')) {
-                trackedTab.sendInput?.('echo hi\r\n')
-                this.stopMonitor()
-            }
-        })
-        alert('Monitoring... (will auto-stop after match)')
-    }
+    private async openAndRunScript(): Promise<void> {
+        if (!trackedTab) {
+            alert('Open a terminal first')
+            return
+        }
+        if (!trackedTab.session) {
+            alert('No session')
+            return
+        }
 
-    private stopMonitor(): void {
-        monitoring = false
-        if (outputSub) { outputSub.unsubscribe(); outputSub = null }
-        alert('Stopped')
+        const result = await this.electron.dialog.showOpenDialog({
+            title: 'Select Script File',
+            filters: [{ name: 'JavaScript', extensions: ['js'] }],
+            properties: ['openFile'],
+        })
+
+        if (result.canceled || result.filePaths.length === 0) {
+            return
+        }
+
+        const scriptPath = result.filePaths[0]
+        this.log.info('Running script: ' + scriptPath)
+
+        try {
+            const resolved = require.resolve(scriptPath)
+            delete require.cache[resolved]
+        } catch (_) {
+            // path not resolvable, proceed anyway
+        }
+
+        let scriptFn: any
+        try {
+            scriptFn = require(scriptPath)
+        } catch (err: any) {
+            alert('Failed to load script: ' + err.message)
+            return
+        }
+
+        if (typeof scriptFn !== 'function') {
+            alert('Script must export a function')
+            return
+        }
+
+        const runner = {
+            tab: trackedTab,
+            sendInput: (text: string) => trackedTab.sendInput?.(text),
+            alert: (msg: string) => alert(msg),
+        }
+
+        try {
+            scriptFn(runner)
+        } catch (err: any) {
+            alert('Script error: ' + err.message)
+        }
     }
 }
 
@@ -59,7 +93,7 @@ class MonitorButtonProvider extends ToolbarButtonProvider {
     imports: [TabbyCoreModule],
     providers: [
         { provide: TerminalDecorator, useClass: TrackerDecorator, multi: true },
-        { provide: ToolbarButtonProvider, useClass: MonitorButtonProvider, multi: true },
+        { provide: ToolbarButtonProvider, useClass: ScriptButtonProvider, multi: true },
     ],
 })
-export default class MonitorBtnModule {}
+export default class ScriptBtnModule {}
