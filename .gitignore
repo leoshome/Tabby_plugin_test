@@ -1,0 +1,10 @@
+node_modules/
+dist/
+staging/
+*.js.map
+*.d.ts
+package-lock.json
+log.txt
+.DS_Store
+Thumbs.db
+*.tgz

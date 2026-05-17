@@ -1,0 +1,21 @@
+{
+  "name": "tabby-notepad-btn",
+  "version": "1.0.0",
+  "description": "Button to open file in Notepad",
+  "author": "tabby-notepad-btn",
+  "keywords": [
+    "tabby-plugin"
+  ],
+  "main": "dist/index.js",
+  "module": "index.ts",
+  "typings": "dist/index.d.ts",
+  "dependencies": {},
+  "devDependencies": {
+    "tabby-core": "^1.0.231-nightly.0",
+    "tabby-electron": "^1.0.231-nightly.0",
+    "typescript": "^5.7.2",
+    "webpack": "^5.105.4",
+    "webpack-cli": "^6.0.1",
+    "ts-loader": "^9.5.4"
+  }
+}
