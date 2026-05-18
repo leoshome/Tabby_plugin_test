@@ -3,6 +3,8 @@ import TabbyCoreModule, { ToolbarButtonProvider, ToolbarButton, LogService } fro
 import { TerminalDecorator } from 'tabby-terminal'
 import { ElectronService } from 'tabby-electron'
 
+const nativeRequire = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require')
+
 let trackedTab: any = null
 
 @Injectable()
@@ -56,15 +58,14 @@ class ScriptButtonProvider extends ToolbarButtonProvider {
         this.log.info('Running script: ' + scriptPath)
 
         try {
-            const resolved = require.resolve(scriptPath)
-            delete require.cache[resolved]
+            const resolved = nativeRequire.resolve(scriptPath)
+            delete nativeRequire.cache[resolved]
         } catch (_) {
-            // path not resolvable, proceed anyway
         }
 
         let scriptFn: any
         try {
-            scriptFn = require(scriptPath)
+            scriptFn = nativeRequire(scriptPath)
         } catch (err: any) {
             alert('Failed to load script: ' + err.message)
             return
