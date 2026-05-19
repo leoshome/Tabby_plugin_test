@@ -3,7 +3,7 @@ import TabbyCoreModule, { ToolbarButtonProvider, ToolbarButton, LogService } fro
 import { TerminalDecorator } from 'tabby-terminal'
 import { ElectronService } from 'tabby-electron'
 
-const nativeRequire = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require')
+const nativeRequire = eval('require')
 
 let trackedTab: any = null
 
@@ -36,11 +36,11 @@ class ScriptButtonProvider extends ToolbarButtonProvider {
 
     private async openAndRunScript(): Promise<void> {
         if (!trackedTab) {
-            alert('Open a terminal first')
+            this.electron.dialog.showMessageBox({ message: 'Open a terminal first' })
             return
         }
         if (!trackedTab.session) {
-            alert('No session')
+            this.electron.dialog.showMessageBox({ message: 'No session' })
             return
         }
 
@@ -55,37 +55,39 @@ class ScriptButtonProvider extends ToolbarButtonProvider {
         }
 
         const scriptPath = result.filePaths[0]
-        this.log.info('Running script: ' + scriptPath)
-
-        try {
-            const resolved = nativeRequire.resolve(scriptPath)
-            delete nativeRequire.cache[resolved]
-        } catch (_) {
-        }
 
         let scriptFn: any
         try {
-            scriptFn = nativeRequire(scriptPath)
+            const fs = nativeRequire('fs')
+            const code = fs.readFileSync(scriptPath, 'utf-8')
+            const m = { exports: {} as any }
+            const fn = new Function('module', 'exports', code)
+            fn(m, m.exports)
+            scriptFn = m.exports
         } catch (err: any) {
-            alert('Failed to load script: ' + err.message)
+            this.electron.dialog.showMessageBox({ message: 'Failed to load script: ' + err.message })
             return
         }
 
         if (typeof scriptFn !== 'function') {
-            alert('Script must export a function')
+            this.electron.dialog.showMessageBox({ message: 'Script must export a function' })
             return
+        }
+
+        const showAlert = (msg: string) => {
+            this.electron.dialog.showMessageBox({ message: msg })
         }
 
         const runner = {
             tab: trackedTab,
             sendInput: (text: string) => trackedTab.sendInput?.(text),
-            alert: (msg: string) => alert(msg),
+            alert: showAlert,
         }
 
         try {
             scriptFn(runner)
         } catch (err: any) {
-            alert('Script error: ' + err.message)
+            this.electron.dialog.showMessageBox({ message: 'Script error: ' + err.message })
         }
     }
 }

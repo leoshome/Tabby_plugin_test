@@ -1,0 +1,104 @@
+<h3>Script Runner</h3>
+
+<p class="text-muted">
+  Configure script groups and commands. Scripts appear as toolbar buttons
+  and execute command sequences in the active terminal.
+</p>
+
+<div *ngFor="let group of groups; let gi = index; trackBy: trackById" class="sr-groups">
+  <div class="sr-group-header">
+    <div class="sr-group-title">
+      <input class="form-control form-control-sm sr-group-name"
+        type="text"
+        [(ngModel)]="group.name"
+        (ngModelChange)="save()"
+        placeholder="Group name" />
+    </div>
+    <div class="sr-group-actions">
+      <button class="btn btn-sm btn-outline-secondary" (click)="moveGroupUp(group)" title="Move Up">
+        <i class="fa-solid fa-arrow-up"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="moveGroupDown(group)" title="Move Down">
+        <i class="fa-solid fa-arrow-down"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-danger" (click)="removeGroup(group)" title="Delete Group">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngFor="let script of group.scripts; let si = index; trackBy: trackById" class="sr-scripts">
+    <div class="sr-script-header">
+      <div class="sr-script-title">
+        <i class="fa-solid fa-grip-vertical sr-grip"></i>
+        <input class="form-control form-control-sm sr-script-name"
+          type="text"
+          [(ngModel)]="script.name"
+          (ngModelChange)="save()"
+          placeholder="Script name" />
+        <input class="form-control form-control-sm sr-script-icon"
+          type="text"
+          [(ngModel)]="script.icon"
+          (ngModelChange)="save()"
+          placeholder="Icon class (e.g. fa-solid fa-play)" />
+      </div>
+      <div class="sr-script-actions">
+        <button class="btn btn-sm btn-outline-secondary" (click)="moveScriptUp(group, script)" title="Move Up">
+          <i class="fa-solid fa-arrow-up"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="moveScriptDown(group, script)" title="Move Down">
+          <i class="fa-solid fa-arrow-down"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" (click)="removeScript(group, script)" title="Delete Script">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="sr-commands">
+      <div *ngFor="let cmd of script.commands; let ci = index" class="sr-command">
+        <div class="sr-command-fields">
+          <input class="form-control form-control-sm sr-cmd-text"
+            type="text"
+            [(ngModel)]="cmd.command"
+            (ngModelChange)="save()"
+            placeholder="Command" />
+          <input class="form-control form-control-sm sr-cmd-delay"
+            type="number"
+            [(ngModel)]="cmd.delay"
+            (ngModelChange)="save()"
+            placeholder="Delay (ms)"
+            min="0"
+            title="Delay in milliseconds after executing this command" />
+          <label class="sr-send-enter">
+            <input type="checkbox" [(ngModel)]="cmd.sendEnter" (ngModelChange)="save()" />
+            <span>Send Enter</span>
+          </label>
+        </div>
+        <div class="sr-command-actions">
+          <button class="btn btn-sm btn-outline-secondary" (click)="moveCommandUp(script, ci)" title="Move Up">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" (click)="moveCommandDown(script, ci)" title="Move Down">
+            <i class="fa-solid fa-arrow-down"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="removeCommand(script, ci)" title="Delete Command">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-sm btn-outline-primary sr-add-cmd" (click)="addCommand(script)">
+        <i class="fa-solid fa-plus"></i> Add Command
+      </button>
+    </div>
+  </div>
+
+  <button class="btn btn-sm btn-outline-success sr-add-script" (click)="addScript(group)">
+    <i class="fa-solid fa-plus"></i> Add Script
+  </button>
+</div>
+
+<button class="btn btn-primary sr-add-group" (click)="addGroup()">
+  <i class="fa-solid fa-plus"></i> Add Group
+</button>
